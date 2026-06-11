@@ -2,10 +2,21 @@ import azure.functions as func
 import json
 import os
 import datetime
-from azure.storage.blob import BlobServiceClient
+# from azure.storage.blob import BlobServiceClient
 
 # Initialize the Azure Function App
 app = func.FunctionApp(http_auth_level=func.AuthLevel.ANONYMOUS)
+connection_string = os.environ.get("AzureWebJobsStorage")
+# blob_service_client = BlobServiceClient.from_connection_string(connection_string)
+
+# 2. Access the 'start' container specifically
+container_name = "start" 
+blob_name = "one.json" # Your uploaded file
+# blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+
+# # 3. Download the board
+# # blob_data = blob_client.download_blob().readall()
+# board = json.loads(blob_data).get('board')
 
 # ---------------------------------------------------------
 # 1. Sudoku Backtracking Algorithm (RQ2)
@@ -77,7 +88,7 @@ def solve_sudoku_function(req: func.HttpRequest) -> func.HttpResponse:
 
         # Connect to Azure Blob Storage using the connection string
         connection_string = os.environ.get("AzureWebJobsStorage")
-        blob_service_client = BlobServiceClient.from_connection_string(connection_string)
+        # blob_service_client = BlobServiceClient.from_connection_string(connection_string)
         container_name = "sudoku-solutions"
         
         # Ensure the container exists
