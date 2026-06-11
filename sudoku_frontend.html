@@ -3,178 +3,222 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cloud Sudoku Solver</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <title>Azure Sudoku Solver</title>
     <style>
-        body { 
-            font-family: 'Poppins', sans-serif; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            background-color: #f4f7f6; 
-            margin: 0; 
-            padding: 40px 20px; 
-        }
-        h1 { color: #333; margin-bottom: 5px; }
-        p { color: #666; margin-bottom: 30px; }
-        
-        .grid { 
-            display: grid; 
-            grid-template-columns: repeat(9, 45px); 
-            grid-template-rows: repeat(9, 45px); 
-            gap: 1px; 
-            background-color: #333; 
-            border: 3px solid #333; 
-            border-radius: 4px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-        
-        .cell { 
-            width: 100%; 
-            height: 100%; 
-            text-align: center; 
-            font-size: 22px; 
-            font-weight: 600;
-            border: none; 
-            outline: none; 
-            background-color: #fff; 
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            margin: 0;
+            padding: 20px;
             color: #333;
-            box-sizing: border-box;
         }
-        
-        .cell:nth-child(3n) { border-right: 2px solid #333; }
-        .cell:nth-child(9n) { border-right: none; }
-        
-        .grid > input:nth-child(n+19):nth-child(-n+27),
-        .grid > input:nth-child(n+46):nth-child(-n+54) { 
-            border-bottom: 2px solid #333; 
+        .container {
+            max-width: 820px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+        h1 { margin: 0; font-size: 2.3em; }
+        .subtitle { opacity: 0.9; margin-top: 8px; }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(9, 52px);
+            gap: 3px;
+            background: #2c3e50;
+            padding: 12px;
+            margin: 30px auto;
+            width: fit-content;
+            border: 5px solid #2c3e50;
+        }
+        input {
+            width: 52px;
+            height: 52px;
+            text-align: center;
+            font-size: 1.5em;
+            font-weight: bold;
+            border: 1px solid #ddd;
+            background: white;
+        }
+        input:focus {
+            outline: 3px solid #3498db;
+            background: #f0f8ff;
         }
 
-        .cell:focus { background-color: #e3f2fd; }
-        
-        .button-container { margin-top: 30px; }
-        button { 
-            padding: 12px 24px; 
-            font-size: 16px; 
-            font-weight: 600;
-            background-color: #0078D4;
-            color: white; 
-            border: none; 
-            border-radius: 6px; 
-            cursor: pointer; 
-            transition: background-color 0.2s;
+        /* Strong 3x3 block borders */
+        input:nth-child(3n):not(:nth-child(9n)) {
+            border-right: 4px solid #2c3e50 !important;
         }
-        button:hover { background-color: #005A9E; }
-        button:disabled { background-color: #ccc; cursor: not-allowed; }
-        
-        #status { 
-            margin-top: 20px; 
-            font-weight: 600; 
-            color: #0078D4; 
-            min-height: 24px;
+        input:nth-child(6n):not(:nth-child(9n)) {
+            border-right: 4px solid #2c3e50 !important;
         }
-        
-        .user-input { color: #0078D4; }
+        .board input:nth-child(n+19):nth-child(-n+27),
+        .board input:nth-child(n+46):nth-child(-n+54) {
+            border-bottom: 4px solid #2c3e50 !important;
+        }
+
+        .controls {
+            text-align: center;
+            padding: 25px;
+        }
+        button {
+            padding: 14px 28px;
+            margin: 0 8px;
+            font-size: 1.1em;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-solve { background: #27ae60; color: white; }
+        .btn-solve:hover { background: #219653; }
+        .btn-clear { background: #e74c3c; color: white; }
+        .btn-clear:hover { background: #c0392b; }
+        .btn-example { background: #3498db; color: white; }
+        .btn-example:hover { background: #2980b9; }
+
+        .status {
+            text-align: center;
+            margin: 15px 0;
+            font-weight: bold;
+            min-height: 28px;
+            font-size: 1.1em;
+        }
+        .loading { color: #f39c12; }
+        .success { color: #27ae60; }
+        .error { color: #e74c3c; }
+
+        .solution-info {
+            background: #f8f9fa;
+            padding: 18px;
+            margin: 20px;
+            border-radius: 10px;
+            font-size: 1em;
+            border-left: 5px solid #27ae60;
+        }
     </style>
 </head>
 <body>
+    <div class="container">
+        <header>
+            <h1>☁️ Azure Sudoku Solver</h1>
+            <p class="subtitle">Solve puzzles with Azure Functions + Blob Storage</p>
+        </header>
 
-    <h1>Azure Sudoku Solver</h1>
-    <p>Fill in the puzzle and let the cloud compute the solution.</p>
+        <div class="board" id="board"></div>
 
-    <div class="grid" id="sudoku-grid">
+        <div class="controls">
+            <button class="btn-example" onclick="loadExample()">Load Example</button>
+            <button class="btn-solve" onclick="solvePuzzle()">Solve Puzzle</button>
+            <button class="btn-clear" onclick="clearBoard()">Clear Board</button>
+        </div>
+
+        <div class="status" id="status"></div>
+        <div class="solution-info" id="solutionInfo" style="display:none;"></div>
     </div>
-
-    <div class="button-container">
-        <button id="solve-btn" onclick="solveSudoku()">Solve Puzzle</button>
-        <button onclick="clearBoard()" style="background-color: #e0e0e0; color: #333; margin-left: 10px;">Clear</button>
-    </div>
-    
-    <div id="status"></div>
 
     <script>
-        const grid = document.getElementById('sudoku-grid');
-        
-        for (let i = 0; i < 81; i++) {
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.maxLength = '1';
-            input.className = 'cell';
-            input.id = `cell-${i}`;
-            input.oninput = function() { 
-                this.value = this.value.replace(/[^1-9]/g, ''); 
-            };
-            grid.appendChild(input);
-        }
+        const apiUrl = 'https://sudoku-gpb5e0e3b3g9dtgp.spaincentral-01.azurewebsites.net/api/solve';
 
-        function clearBoard() {
+        let boardInputs = [];
+
+        function createBoard() {
+            const boardEl = document.getElementById('board');
+            boardEl.innerHTML = '';
+            boardInputs = [];
+
             for (let i = 0; i < 81; i++) {
-                const cell = document.getElementById(`cell-${i}`);
-                cell.value = '';
-                cell.style.backgroundColor = '#fff';
-                cell.classList.remove('user-input');
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.maxLength = 1;
+                input.oninput = function() {
+                    if (this.value && !/^[1-9]$/.test(this.value)) this.value = '';
+                };
+                boardEl.appendChild(input);
+                boardInputs.push(input);
             }
-            document.getElementById('status').innerText = "";
         }
 
-        async function solveSudoku() {
-            const statusText = document.getElementById('status');
-            const solveBtn = document.getElementById('solve-btn');
-            
-            statusText.innerText = "Sending puzzle to Azure Function...";
-            statusText.style.color = "#333";
-            solveBtn.disabled = true;
-            
-            let board = [];
-            for (let r = 0; r < 9; r++) {
-                let row = [];
-                for (let c = 0; c < 9; c++) {
-                    let val = document.getElementById(`cell-${r * 9 + c}`).value;
+        function getBoard() {
+            const board = [];
+            for (let i = 0; i < 9; i++) {
+                const row = [];
+                for (let j = 0; j < 9; j++) {
+                    const val = boardInputs[i*9 + j].value.trim();
                     row.push(val ? parseInt(val) : 0);
-                    if (val) {
-                        document.getElementById(`cell-${r * 9 + c}`).classList.add('user-input');
-                    }
                 }
                 board.push(row);
             }
+            return board;
+        }
+
+        function setBoard(board) {
+            for (let i = 0; i < 81; i++) {
+                const val = board[Math.floor(i/9)][i % 9];
+                boardInputs[i].value = (val !== 0) ? val : '';
+            }
+        }
+
+        async function solvePuzzle() {
+            const status = document.getElementById('status');
+            const solutionInfo = document.getElementById('solutionInfo');
+            
+            status.textContent = "Solving in Azure...";
+            status.className = "status loading";
+            solutionInfo.style.display = "none";
 
             try {
-                // For production, replace with your deployed Azure Function URL
-                const apiUrl = 'http://localhost:7071/api/solve'; 
-                
                 const response = await fetch(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ board: board })
+                    body: JSON.stringify({ board: getBoard() })
                 });
 
                 const data = await response.json();
 
                 if (response.ok) {
-                    statusText.innerText = "Puzzle Solved! Saved to Blob Storage.";
-                    statusText.style.color = "#107c10";
+                    setBoard(data.solution);
+                    status.textContent = "✅ Puzzle Solved Successfully!";
+                    status.className = "status success";
                     
-                    for (let r = 0; r < 9; r++) {
-                        for (let c = 0; c < 9; c++) {
-                            const cell = document.getElementById(`cell-${r * 9 + c}`);
-                            cell.value = data.solution[r][c];
-                            if (!cell.classList.contains('user-input')) {
-                                cell.style.backgroundColor = '#e6ffed';
-                            }
-                        }
-                    }
+                    solutionInfo.innerHTML = `<strong>✅ Solution saved to Azure Blob Storage!</strong><br>${data.info || 'Check sudoku-solutions container in your Storage Account'}`;
+                    solutionInfo.style.display = "block";
                 } else {
-                    statusText.innerText = "Error: " + (data.error || "Unknown error");
-                    statusText.style.color = "#d13438";
+                    status.textContent = "❌ " + (data.error || "Could not solve puzzle");
+                    status.className = "status error";
                 }
             } catch (err) {
-                statusText.innerText = "Request failed. Check if Azure Function is running.";
-                statusText.style.color = "#d13438";
+                status.textContent = "❌ Could not connect to Azure Function";
+                status.className = "status error";
                 console.error(err);
-            } finally {
-                solveBtn.disabled = false;
             }
         }
+
+        function loadExample() {
+            const example = [
+                [5,3,0,0,7,0,0,0,0], [6,0,0,1,9,5,0,0,0], [0,9,8,0,0,0,0,6,0],
+                [8,0,0,0,6,0,0,0,3], [4,0,0,8,0,3,0,0,1], [7,0,0,0,2,0,0,0,6],
+                [0,6,0,0,0,0,2,8,0], [0,0,0,4,1,9,0,0,5], [0,0,0,0,8,0,0,7,9]
+            ];
+            setBoard(example);
+            document.getElementById('status').textContent = "Example puzzle loaded ✓";
+        }
+
+        function clearBoard() {
+            boardInputs.forEach(input => input.value = '');
+            document.getElementById('status').textContent = '';
+            document.getElementById('solutionInfo').style.display = 'none';
+        }
+
+        window.onload = createBoard;
     </script>
 </body>
 </html>

@@ -25,25 +25,34 @@ def solve_sudoku_function(req: func.HttpRequest) -> func.HttpResponse:
         board_copy = [row[:] for row in board]
 
         if sudoku_solver.solve(board_copy):
-            # Try to save to blob (but don't fail the whole request if it doesn't work)
+            saved_message = "Blob storage disabled"
+            
+            # Save to Blob Storage
             try:
-                connection_string = os.environ.get("AzureWebJobsStorage") or "UseDevelopmentStorage=true"
-                blob_service_client = BlobServiceClient.from_connection_string(connection_string)
-                container_client = blob_service_client.get_container_client("sudoku-solutions")
-                if not container_client.exists():
-                    container_client.create_container()
+                connection_string = os.environ.get("AzureWebJobsStorage")
+                if connection_string:
+                    blob_service_client = BlobServiceClient.from_connection_string(connection_string)
+                    container_client = blob_service_client.get_container_client("sudoku-solutions")
+                    
+                    if not container_client.exists():
+                        container_client.create_container()
 
-                file_name = f"solution-{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}.json"
-                blob_client = blob_service_client.get_blob_client(container="sudoku-solutions", blob=file_name)
+                    timestamp = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
+                    file_name = f"solution-{timestamp}.json"
 
-                result_data = {
-                    "status": "solved",
-                    "solution": board_copy,
-                    "timestamp": datetime.datetime.now().isoformat(),
-                    "original": board
-                }
-                blob_client.upload_blob(json.dumps(result_data, indent=2), overwrite=True)
-                saved_message = f"Saved as {file_name}"
+                    result_data = {
+                        "status": "solved",
+                        "solution": board_copy,
+                        "original": board,
+                        "timestamp": datetime.datetime.now().isoformat(),
+                        "solved_in": "Azure Functions"
+                    }
+
+                    blob_client = blob_service_client.get_blob_client(container="sudoku-solutions", blob=file_name)
+                    blob_client.upload_blob(json.dumps(result_data, indent=2), overwrite=True)
+                    saved_message = f"Saved to Blob: {file_name}"
+                else:
+                    saved_message = "AzureWebJobsStorage not configured"
             except Exception as blob_err:
                 saved_message = f"Blob save failed: {str(blob_err)}"
 
@@ -58,17 +67,14 @@ def solve_sudoku_function(req: func.HttpRequest) -> func.HttpResponse:
             )
         else:
             return func.HttpResponse(
-                json.dumps({"error": "No solution found for this puzzle."}), 
+                json.dumps({"error": "No solution found."}), 
                 status_code=400,
                 mimetype="application/json"
             )
 
     except Exception as e:
         return func.HttpResponse(
-            json.dumps({
-                "error": str(e),
-                "traceback": traceback.format_exc()
-            }), 
+            json.dumps({"error": str(e), "traceback": traceback.format_exc()}), 
             status_code=500,
             mimetype="application/json"
         )
